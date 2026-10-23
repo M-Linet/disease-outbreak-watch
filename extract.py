@@ -68,6 +68,12 @@ DEATHS = [
     rf"vifo\s+(?:vya\s+watu\s+)?{NUM}",                    # vifo 3
     rf"watu\s+{NUM}\s+(?:wamefariki|wamekufa|wamepoteza\s+maisha)",
 ]
+# "Kenya confirms eighth Ebola case" -> 8 cases so far
+ORDINALS = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7,
+            "eighth": 8, "ninth": 9, "tenth": 10, "eleventh": 11, "twelfth": 12}
+CASES.append(r"\b(" + "|".join(ORDINALS) + r")\s+(?:confirmed\s+)?(?:[a-z-]+\s+){0,2}?case\b")
+# "four more cases, bringing the total to seven"
+CASES.append(rf"(?:bringing\s+(?:the\s+)?total\s+(?:number\s+of\s+cases\s+)?to|total\s+(?:number\s+of\s+)?cases\s+(?:to|of|at))\s+{NUM}")
 CASES = [re.compile(p, re.I) for p in CASES]
 DEATHS = [re.compile(p, re.I) for p in DEATHS]
 
@@ -76,6 +82,8 @@ def _to_int(s):
     s = s.lower()
     if s in NUMBER_WORDS:
         return NUMBER_WORDS[s]
+    if s in ORDINALS:
+        return ORDINALS[s]
     s = s.replace(",", "")
     return int(s) if s.isdigit() else None
 

@@ -15,7 +15,8 @@ from urllib.parse import quote_plus
 
 import feedparser
 
-COUNTRIES = ["Kenya", "Uganda", "Tanzania", "Rwanda", "Ethiopia", "Somalia", "South Sudan"]
+# DR Congo is in because the 2026 Ebola outbreak started there and spread east
+COUNTRIES = ["Kenya", "Uganda", "Tanzania", "Rwanda", "Ethiopia", "Somalia", "South Sudan", "DR Congo"]
 
 KEYWORDS_EN = [
     "cholera", "measles", "malaria outbreak", "mpox", "ebola", "marburg",

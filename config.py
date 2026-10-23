@@ -7,7 +7,7 @@ DISEASES = {
     "measles": ["measles", "surua", "rubeola"],
     "malaria": ["malaria", "maleria"],
     "mpox": ["mpox", "monkeypox", "homa ya nyani"],
-    "ebola": ["ebola", "ebola virus disease", "sudan virus"],
+    "ebola": ["ebola", "ebola virus disease", "sudan virus", "bundibugyo"],
     "marburg": ["marburg"],
     "dengue": ["dengue", "homa ya dengue", "dengi"],
     "anthrax": ["anthrax", "kimeta"],
