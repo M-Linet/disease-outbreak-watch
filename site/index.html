@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outbreak Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,750&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #edf1ef;
+  --panel: #f7f9f8;
+  --land: #e1e8e3;
+  --land-tracked: #d2ddd6;
+  --water: #9fc4d2;
+  --line: #c4d0ca;
+  --ink: #15323c;
+  --muted: #5d7279;
+  --faint: #8fa1a6;
+  --alert: #d3245c;
+  --alert-soft: #f6d3de;
+  --focus: #1e6fd9;
+  --display: "Bricolage Grotesque", "Avenir Next", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0; color: var(--ink); background: var(--paper);
+  font: 15px/1.5 var(--body); font-variant-numeric: tabular-nums;
+}
+a { color: inherit; }
+a:hover { color: var(--alert); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+/* masthead */
+header.top { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding: 28px 0 18px; flex-wrap: wrap; }
+.brand h1 { font: 750 2.1rem/1 var(--display); letter-spacing: -0.02em; margin: 0; font-variation-settings: "opsz" 96; }
+.brand p { margin: 6px 0 0; color: var(--muted); }
+.issue { text-align: right; color: var(--muted); }
+.issue strong { display: block; color: var(--ink); font: 600 1.15rem/1.2 var(--display); }
+.demo { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 99px; background: #fff3c4; color: #6a5200; font-size: 0.82rem; }
+
+/* hero: map + this week */
+.hero { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 0; background: var(--panel); border-radius: 22px; overflow: hidden; }
+.map-box { position: relative; background: var(--water); min-height: 520px; }
+.map-box svg { display: block; width: 100%; height: 100%; }
+.map-key { position: absolute; left: 16px; bottom: 14px; background: rgba(247,249,248,.92); border-radius: 12px; padding: 8px 12px; font-size: 0.8rem; color: var(--muted); display: flex; gap: 14px; align-items: center; }
+.map-key i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.week { padding: 30px 32px 26px; display: flex; flex-direction: column; }
+.lede { font: 600 1.75rem/1.18 var(--display); letter-spacing: -0.01em; margin: 0 0 8px; max-width: 22ch; text-wrap: balance; }
+.lede-sub { color: var(--muted); margin: 0 0 22px; max-width: 46ch; }
+.signal { display: grid; grid-template-columns: 64px 1fr; gap: 4px 14px; padding: 14px 0; border-top: 1px solid var(--line); cursor: pointer; text-align: left; background: none; border-left: 0; border-right: 0; border-bottom: 0; font: inherit; color: inherit; width: 100%; }
+.signal:hover .sig-what, .signal.on .sig-what { color: var(--alert); }
+.sig-n { grid-row: span 2; font: 750 2.4rem/1 var(--display); color: var(--alert); }
+.sig-what { font: 600 1.08rem/1.25 var(--display); }
+.sig-detail { color: var(--muted); font-size: 0.88rem; }
+.quiet { color: var(--muted); padding: 14px 0; border-top: 1px solid var(--line); }
+.week .note { margin-top: auto; padding-top: 18px; color: var(--faint); font-size: 0.8rem; }
+
+/* filters */
+.filters { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 22px 0 6px; }
+.filters .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.filters .lbl { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
+.chip { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 99px; padding: 5px 12px; font: 500 0.86rem var(--body); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+select.chip { appearance: none; padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+.reset { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.86rem; }
+.reset[hidden] { display: none; }
+
+/* analysis */
+h2 { font: 650 1.45rem/1.2 var(--display); letter-spacing: -0.01em; margin: 44px 0 4px; }
+.section-sub { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+.charts { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+.chart { background: var(--panel); border-radius: 16px; padding: 18px 20px 16px; min-width: 0; }
+.chart h3 { font: 600 1.02rem/1.3 var(--display); margin: 0; }
+.chart .sub { color: var(--muted); font-size: 0.84rem; margin: 2px 0 12px; }
+.span-12 { grid-column: span 12; } .span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; }
+.span-4 { grid-column: span 4; } .span-8 { grid-column: span 8; } .span-6 { grid-column: span 6; }
+svg text { font-family: var(--body); fill: var(--muted); font-size: 11px; }
+.axis line, .axis path { stroke: var(--line); }
+.empty { color: var(--faint); font-size: 0.9rem; padding: 30px 0; text-align: center; }
+
+.curves { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 26px; }
+.curve h4 { margin: 0 0 2px; font: 600 0.95rem var(--display); display: flex; align-items: center; gap: 7px; }
+.curve h4 i { width: 9px; height: 9px; border-radius: 50%; }
+.curve .tot { color: var(--muted); font: 400 0.82rem var(--body); margin-left: auto; }
+.curve.up h4 .tot { color: var(--alert); }
+
+.donut-wrap { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.legend { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+.legend li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; transform: translateY(1px); }
+.legend b { font-weight: 600; } .legend span { color: var(--muted); }
+
+/* table */
+.table-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.search { flex: 1 1 260px; max-width: 380px; border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 9px 16px; font: inherit; color: var(--ink); }
+.count { color: var(--muted); font-size: 0.88rem; margin-left: auto; }
+.tbl { background: var(--panel); border-radius: 16px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font: 500 0.82rem var(--body); color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th button { all: unset; cursor: pointer; }
+th button:focus-visible { outline: 2px solid var(--focus); }
+th .arrow { opacity: 0.35; margin-left: 4px; }
+th[aria-sort] .arrow { opacity: 1; color: var(--ink); }
+td { padding: 12px 14px; border-bottom: 1px solid #e3e9e6; vertical-align: top; font-size: 0.9rem; }
+tbody tr:hover { background: #eef3f1; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num { text-align: right; white-space: nowrap; }
+th.num { text-align: right; }
+.hl { font-weight: 500; text-decoration: none; display: block; max-width: 52ch; }
+.hl:hover { text-decoration: underline; }
+.src { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+.lang { display: inline-block; font-size: 0.72rem; font-weight: 600; border-radius: 4px; padding: 0 5px; margin-left: 6px; background: #dde5e0; color: var(--muted); }
+.lang.sw { background: #fde3d6; color: #8a3a12; }
+.pill { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; margin: 0 6px 2px 0; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; }
+.where { color: var(--muted); font-size: 0.86rem; }
+.deaths { color: var(--alert); }
+.conf { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.conf .bar { width: 54px; height: 6px; border-radius: 3px; background: #dde5e0; overflow: hidden; }
+.conf .bar span { display: block; height: 100%; background: var(--ink); border-radius: 3px; }
+.pager { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; color: var(--muted); font-size: 0.88rem; }
+.pager button { border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 5px 14px; font: inherit; color: var(--ink); cursor: pointer; }
+.pager button:disabled { opacity: 0.4; cursor: default; }
+
+footer { color: var(--muted); font-size: 0.86rem; padding: 40px 0 50px; max-width: 75ch; }
+
+/* tooltip */
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: #f2f6f4; padding: 8px 11px; border-radius: 8px; font-size: 0.82rem; line-height: 1.4; max-width: 260px; z-index: 10; opacity: 0; transition: opacity .1s; }
+.tip b { font-weight: 600; color: #fff; }
+
+/* rising-signal pulse: the one bit of motion on the page */
+.pulse { fill: none; stroke: var(--alert); stroke-width: 1.5; animation: pulse 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes pulse { from { transform: scale(1); opacity: .8; } to { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; opacity: .5; } }
+
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; }
+  .map-box { min-height: 420px; }
+  .span-7, .span-5, .span-4, .span-8, .span-6 { grid-column: span 12; }
+  .curves { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  .issue { text-align: left; }
+  .week { padding: 22px 18px; }
+  .lede { font-size: 1.45rem; }
+  .curves { grid-template-columns: 1fr; }
+  thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tr { padding: 10px 0; border-bottom: 1px solid #e3e9e6; }
+  td { border: 0; padding: 3px 14px; }
+  td.num { text-align: left; }
+  .conf { justify-content: flex-start; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Outbreak Watch</h1>
+      <p>Disease outbreak signals from English and Kiswahili news across East Africa</p>
+    </div>
+    <div class="issue" id="issue"></div>
+  </header>
+
+  <section class="hero">
+    <div class="map-box">
+      <svg id="map" role="img" aria-label="Map of East Africa showing where outbreak reports come from"></svg>
+      <div class="map-key"><span><i style="background:var(--alert)"></i>Rising this week</span><span><i style="background:var(--ink);opacity:.55"></i>Other reports, sized by count</span></div>
+    </div>
+    <div class="week" id="week"></div>
+  </section>
+
+  <div class="filters" id="filters"></div>
+
+  <h2>What the reports show</h2>
+  <p class="section-sub" id="scope"></p>
+  <div class="charts">
+    <div class="chart span-12">
+      <h3>Weekly reports by disease</h3>
+      <p class="sub">Epidemic curves, one per disease. Each bar is a week of articles flagged as outbreak reports; the right-most bar is this week.</p>
+      <div class="curves" id="curves"></div>
+    </div>
+    <div class="chart span-7">
+      <h3>Disease and country</h3>
+      <p class="sub">Flagged articles for each pair. Darker means more reports.</p>
+      <div id="heat"></div>
+    </div>
+    <div class="chart span-5">
+      <h3>English and Kiswahili coverage</h3>
+      <p class="sub">Share of flagged articles by language</p>
+      <div id="lang"></div>
+    </div>
+    <div class="chart span-6">
+      <h3>Largest case counts mentioned</h3>
+      <p class="sub">Highest number of cases any single article reported, by disease. Deaths shown alongside.</p>
+      <div id="counts"></div>
+    </div>
+    <div class="chart span-6">
+      <h3>Where the reports come from</h3>
+      <p class="sub">Flagged articles per news outlet</p>
+      <div id="sources"></div>
+    </div>
+    <div class="chart span-12">
+      <h3>How sure the classifier is</h3>
+      <p class="sub">All collected articles by predicted chance of being an outbreak report. Everything right of the line is flagged.</p>
+      <div id="conf"></div>
+    </div>
+  </div>
+
+  <h2>Flagged articles</h2>
+  <p class="section-sub">Every article the classifier flagged, with what was pulled out of it. Click a column to sort.</p>
+  <div class="table-tools">
+    <input class="search" id="search" type="search" placeholder="Search headlines, places, outlets" aria-label="Search flagged articles">
+    <span class="count" id="count"></span>
+  </div>
+  <div class="tbl">
+    <table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="pager"><button id="prev">Previous</button><span id="page"></span><button id="next">Next</button></div>
+  </div>
+
+  <footer>
+    Articles come from Google News search results for disease names in English and Kiswahili. A
+    TF-IDF and logistic regression model decides which ones report an outbreak, and rule-based
+    extraction pulls out the disease, place and numbers. A pair counts as rising when it has at
+    least two reports this week and at least twice its weekly average over the previous four weeks.
+    These are leads to verify against official sources, not confirmed outbreaks.
+  </footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/geo.js"></script>
+<script src="data.js"></script>
+<script>
+(() => {
+const D = window.DATA;
+if (!D) {
+  document.getElementById("week").innerHTML =
+    '<p class="lede">No data yet</p><p class="lede-sub">Run <code>python pipeline.py</code> and then <code>python build_site.py</code>, and reload this page.</p>';
+  return;
+}
+
+// ---------- basics
+const DAY = 864e5;
+const asOf = new Date(D.asOf + "T12:00:00");
+const weeksAgo = (s) => Math.floor((asOf - new Date(s + "T12:00:00")) / (7 * DAY));
+const fmtDate = d3.timeFormat("%-d %b");
+const fmtLong = d3.timeFormat("%-d %B %Y");
+const fmt = d3.format(",");
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const INK = css("--ink"), ALERT = css("--alert"), LINE = css("--line"), MUTED = css("--muted");
+
+// colour follows the disease (fixed order from config.py), never its rank
+const PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6"];
+const colorOf = (d) => { const i = D.diseaseOrder.indexOf(d); return i >= 0 && i < PALETTE.length ? PALETTE[i] : "#8a9a9e"; };
+const LANG = { en: { name: "English", color: "#2a78d6" }, sw: { name: "Kiswahili", color: "#eb6834" } };
+
+const flagged = D.articles.filter((a) => a.flagged && a.diseases.length);
+const risingKey = new Set(D.rising.map((r) => r.disease + "|" + r.country));
+
+// ---------- tooltip
+const tip = document.getElementById("tip");
+function showTip(e, html) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => (tip.style.opacity = 0);
+
+// ---------- state + filters
+const S = { diseases: new Set(), country: "", lang: "all", weeks: "all" };
+
+function view() {
+  return flagged.filter((a) =>
+    (!S.diseases.size || a.diseases.some((d) => S.diseases.has(d))) &&
+    (!S.country || a.countries.includes(S.country)) &&
+    (S.lang === "all" || a.lang === S.lang) &&
+    (S.weeks === "all" || weeksAgo(a.date) < +S.weeks));
+}
+// articles about a disease also count against every country they mention
+function pairs(list) {
+  const out = [];
+  list.forEach((a) => a.diseases.forEach((d) => {
+    if (S.diseases.size && !S.diseases.has(d)) return;
+    a.countries.forEach((c) => { if (!S.country || c === S.country) out.push({ a, d, c }); });
+  }));
+  return out;
+}
+
+function buildFilters() {
+  const counts = d3.rollup(flagged.flatMap((a) => a.diseases), (v) => v.length, (d) => d);
+  const diseases = [...counts.keys()].sort((x, y) => counts.get(y) - counts.get(x));
+  const countries = [...new Set(flagged.flatMap((a) => a.countries))].sort();
+  const el = document.getElementById("filters");
+  el.innerHTML = `
+    <div class="group" aria-label="Diseases"><span class="lbl">Disease</span>
+      ${diseases.map((d) => `<button class="chip" data-d="${d}" aria-pressed="false"><i style="background:${colorOf(d)}"></i>${cap(d)}</button>`).join("")}
+    </div>
+    <div class="group">
+      <select class="chip" id="f-country" aria-label="Country"><option value="">All countries</option>${countries.map((c) => `<option>${c}</option>`).join("")}</select>
+      <select class="chip" id="f-lang" aria-label="Language"><option value="all">Both languages</option><option value="en">English</option><option value="sw">Kiswahili</option></select>
+      <select class="chip" id="f-weeks" aria-label="Time period"><option value="all">All weeks</option><option value="4">Last 4 weeks</option><option value="8">Last 8 weeks</option></select>
+      <button class="reset" id="reset" hidden>Clear filters</button>
+    </div>`;
+  el.querySelectorAll("[data-d]").forEach((b) => b.addEventListener("click", () => {
+    const d = b.dataset.d;
+    S.diseases.has(d) ? S.diseases.delete(d) : S.diseases.add(d);
+    update();
+  }));
+  el.querySelector("#f-country").onchange = (e) => { S.country = e.target.value; update(); };
+  el.querySelector("#f-lang").onchange = (e) => { S.lang = e.target.value; update(); };
+  el.querySelector("#f-weeks").onchange = (e) => { S.weeks = e.target.value; update(); };
+  el.querySelector("#reset").onclick = () => {
+    S.diseases.clear(); S.country = ""; S.lang = "all"; S.weeks = "all"; update();
+  };
+}
+function syncFilters() {
+  document.querySelectorAll("[data-d]").forEach((b) => b.setAttribute("aria-pressed", S.diseases.has(b.dataset.d)));
+  document.getElementById("f-country").value = S.country;
+  document.getElementById("f-lang").value = S.lang;
+  document.getElementById("f-weeks").value = S.weeks;
+  document.getElementById("reset").hidden = !(S.diseases.size || S.country || S.lang !== "all" || S.weeks !== "all");
+  document.querySelectorAll(".signal").forEach((b) =>
+    b.classList.toggle("on", S.diseases.size === 1 && S.diseases.has(b.dataset.d) && S.country === b.dataset.c));
+}
+
+// ---------- header + this week
+function header() {
+  document.getElementById("issue").innerHTML =
+    `<strong>Week ending ${fmtLong(asOf)}</strong>${fmt(D.articles.length)} articles read, ${fmt(flagged.length)} flagged` +
+    (D.demo ? `<br><span class="demo">Demo data: these headlines are made up</span>` : "");
+}
+
+function usualText(r) {
+  if (!r.usual) return "none in the four weeks before";
+  const x = r.week / r.usual;
+  return `usually ${r.usual < 1 ? "under one" : d3.format(".1~f")(r.usual)} a week, so ${x >= 10 ? Math.round(x) : d3.format(".1~f")(x)} times normal`;
+}
+function thisWeek() {
+  const R = [...D.rising].sort((a, b) => b.week - a.week);
+  const el = document.getElementById("week");
+  if (!R.length) {
+    el.innerHTML = `<p class="lede">Nothing is above its usual level this week.</p>
+      <p class="lede-sub">${fmt(flagged.filter((a) => weeksAgo(a.date) === 0).length)} outbreak reports came in, all in line with the previous four weeks.</p>`;
+    return;
+  }
+  const t = R[0];
+  const where = t.places.length ? t.places.slice(0, 3).join(", ") : t.country;
+  const others = R.slice(1);
+  el.innerHTML = `
+    <p class="lede">${cap(t.disease)} reports from ${where} have jumped this week.</p>
+    <p class="lede-sub">${t.week} articles on ${t.disease} in ${t.country} in seven days, ${usualText(t)}.${
+      others.length ? ` ${others.length === 1 ? "One more pair is" : others.length + " more pairs are"} also above normal.` : ""}</p>
+    ${R.map((r) => `
+      <button class="signal" data-d="${r.disease}" data-c="${r.country}" aria-label="Show only ${r.disease} in ${r.country}">
+        <span class="sig-n">${r.week}</span>
+        <span class="sig-what">${cap(r.disease)} in ${r.country}</span>
+        <span class="sig-detail">${usualText(r)}${r.cases ? `. Up to ${fmt(r.cases)} cases` : ""}${r.deaths ? ` and ${fmt(r.deaths)} deaths reported` : r.cases ? " reported" : ""}.
+          <a href="${r.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Latest story</a></span>
+      </button>`).join("")}
+    <p class="note">Rising means at least two reports this week and at least double the weekly average of the four weeks before. Click one to filter the page.</p>`;
+  el.querySelectorAll(".signal").forEach((b) => b.addEventListener("click", () => {
+    const same = S.diseases.size === 1 && S.diseases.has(b.dataset.d) && S.country === b.dataset.c;
+    S.diseases.clear(); S.country = "";
+    if (!same) { S.diseases.add(b.dataset.d); S.country = b.dataset.c; }
+    update();
+  }));
+}
+
+// ---------- map
+const map = { svg: d3.select("#map") };
+function setupMap() {
+  const box = document.querySelector(".map-box");
+  const W = box.clientWidth, H = Math.max(box.clientHeight, 420);
+  map.svg.attr("viewBox", `0 0 ${W} ${H}`);
+  const frame = { type: "Feature", geometry: { type: "Polygon", coordinates: [[[28.5, -10.5], [28.5, 14.5], [47.5, 14.5], [47.5, -10.5], [28.5, -10.5]]] } };
+  map.proj = d3.geoMercator().fitExtent([[10, 10], [W - 10, H - 10]], frame);
+  const path = d3.geoPath(map.proj);
+  const tracked = new Set(["Kenya", "Uganda", "Tanzania", "Rwanda", "Burundi", "Ethiopia", "Somalia", "S. Sudan", "Dem. Rep. Congo", "Sudan", "Somaliland"]);
+  map.svg.selectAll("*").remove();
+  map.svg.append("g").selectAll("path").data(GEO.countries.features).join("path")
+    .attr("d", path).attr("fill", (f) => tracked.has(f.properties.name) ? css("--land-tracked") : css("--land"))
+    .attr("stroke", "#fbfcfb").attr("stroke-width", 1);
+  map.svg.append("g").selectAll("path").data(GEO.lakes.features).join("path")
+    .attr("d", path).attr("fill", css("--water"));
+  map.svg.append("g").selectAll("text").data(Object.entries(D.centroids)).join("text")
+    .attr("transform", ([, [la, lo]]) => `translate(${map.proj([lo, la])})`)
+    .attr("text-anchor", "middle").attr("dy", -14)
+    .style("font-size", "12px").style("letter-spacing", ".02em").style("fill", "#7d9298")
+    .text(([c]) => c);
+  map.dots = map.svg.append("g");
+  map.labels = map.svg.append("g");
+}
+function drawMap(list) {
+  const spots = new Map();
+  list.forEach((a) => {
+    const locs = a.places.length
+      ? a.places.filter((p) => D.places[p]).map((p) => ({ name: p, ll: D.places[p], country: Object.keys(D.centroids).find((c) => a.countries.includes(c)) }))
+      : a.countries.filter((c) => D.centroids[c]).map((c) => ({ name: c, ll: D.centroids[c], country: c, whole: true }));
+    locs.forEach((l) => {
+      if (S.country && l.country && l.country !== S.country && !l.whole) return;
+      const s = spots.get(l.name) || { ...l, n: 0, dz: new Map(), rising: false };
+      s.n++;
+      a.diseases.forEach((d) => s.dz.set(d, (s.dz.get(d) || 0) + 1));
+      a.diseases.forEach((d) => a.countries.forEach((c) => {
+        if (risingKey.has(d + "|" + c) && weeksAgo(a.date) === 0) s.rising = true;
+      }));
+      spots.set(l.name, s);
+    });
+  });
+  const data = [...spots.values()].sort((a, b) => b.n - a.n);
+  const r = d3.scaleSqrt().domain([0, d3.max(data, (d) => d.n) || 1]).range([0, 17]);
+
+  const g = map.dots.selectAll("g.spot").data(data, (d) => d.name).join((enter) => {
+    const e = enter.append("g").attr("class", "spot");
+    e.append("circle").attr("class", "pulse");
+    e.append("circle").attr("class", "dot");
+    return e;
+  });
+  g.attr("transform", (d) => `translate(${map.proj([d.ll[1], d.ll[0]])})`)
+    .on("mousemove", (e, d) => showTip(e, `<b>${d.name}${d.whole ? " (no town named)" : ""}</b><br>${d.n} flagged article${d.n === 1 ? "" : "s"}<br>${
+      [...d.dz].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${cap(k)} ${v}`).join(", ")}${d.rising ? "<br><b>Rising this week</b>" : ""}`))
+    .on("mouseleave", hideTip);
+  g.select(".dot").attr("r", (d) => Math.max(3, r(d.n)))
+    .attr("fill", (d) => d.rising ? ALERT : INK).attr("fill-opacity", (d) => d.rising ? 0.88 : 0.22)
+    .attr("stroke", (d) => d.rising ? "#f7f9f8" : INK).attr("stroke-opacity", (d) => d.rising ? 1 : 0.55).attr("stroke-width", (d) => d.rising ? 1.5 : 1)
+    .attr("stroke-dasharray", (d) => d.whole ? "2 2" : null);
+  g.select(".pulse").attr("r", (d) => d.rising ? Math.max(3, r(d.n)) : 0);
+  g.sort((a, b) => a.rising - b.rising || b.n - a.n);
+
+  // label rising towns; push labels apart vertically so close-together towns stay readable
+  const lab = data.filter((d) => d.rising && !d.whole).slice(0, 5).map((d) => {
+    const [px, py] = map.proj([d.ll[1], d.ll[0]]);
+    return { ...d, px, py, ly: py };
+  }).sort((a, b) => a.py - b.py);
+  for (let i = 1; i < lab.length; i++) lab[i].ly = Math.max(lab[i].ly, lab[i - 1].ly + 15);
+  const lx = lab.length ? d3.max(lab, (d) => d.px + Math.max(3, r(d.n))) + 14 : 0;
+  map.labels.selectAll("*").remove();
+  map.labels.selectAll("path").data(lab).join("path")
+    .attr("d", (d) => `M${d.px + Math.max(3, r(d.n))},${d.py}L${lx - 4},${d.ly}`)
+    .attr("stroke", INK).attr("stroke-width", 0.75).attr("fill", "none").attr("stroke-opacity", 0.6);
+  map.labels.selectAll("text").data(lab).join("text")
+    .attr("x", lx).attr("y", (d) => d.ly).attr("dy", "0.35em")
+    .style("fill", INK).style("font-weight", 600).style("font-size", "12.5px")
+    .style("paint-order", "stroke").style("stroke", "#eef2f0").style("stroke-width", 3)
+    .text((d) => d.name);
+}
+
+// ---------- epi curves
+function drawCurves(list) {
+  const el = document.getElementById("curves");
+  const P = pairs(list);
+  const byD = d3.group(P, (p) => p.d);
+  const nWeeks = Math.min(10, (d3.max(flagged, (a) => weeksAgo(a.date)) ?? 0) + 1);
+  const ds = [...byD.keys()].sort((a, b) => byD.get(b).length - byD.get(a).length).slice(0, 6);
+  if (!ds.length) { el.innerHTML = `<p class="empty">No flagged articles match these filters.</p>`; return; }
+  el.innerHTML = "";
+  const yMax = d3.max(ds, (d) => d3.max(d3.rollups(byD.get(d), (v) => new Set(v.map((p) => p.a)).size, (p) => weeksAgo(p.a.date)), (x) => x[1]));
+  ds.forEach((d) => {
+    const weeks = d3.range(nWeeks).map((w) => new Set(byD.get(d).filter((p) => weeksAgo(p.a.date) === w).map((p) => p.a)).size).reverse();
+    const up = D.rising.some((r) => r.disease === d && (!S.country || r.country === S.country));
+    const total = new Set(byD.get(d).map((p) => p.a)).size;
+    const div = document.createElement("div");
+    div.className = "curve" + (up ? " up" : "");
+    div.innerHTML = `<h4><i style="background:${colorOf(d)}"></i>${cap(d)}<span class="tot">${total} report${total === 1 ? "" : "s"}${up ? ", rising" : ""}</span></h4>`;
+    el.appendChild(div);
+    const W = div.clientWidth || 300, H = 96, m = { t: 6, r: 2, b: 18, l: 22 };
+    const x = d3.scaleBand().domain(d3.range(nWeeks)).range([m.l, W - m.r]).paddingInner(0.18);
+    const y = d3.scaleLinear().domain([0, yMax]).nice().range([H - m.b, m.t]);
+    const svg = d3.select(div).append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("width", "100%")
+      .attr("role", "img").attr("aria-label", `${d}: weekly reports, oldest to newest: ${weeks.join(", ")}`);
+    svg.append("g").attr("class", "axis").call((g) => g.selectAll("line").data(y.ticks(2)).join("line")
+      .attr("x1", m.l).attr("x2", W - m.r).attr("y1", y).attr("y2", y).attr("stroke", LINE).attr("stroke-dasharray", (t) => t ? "2 3" : null));
+    svg.append("g").selectAll("text").data(y.ticks(2).filter((t) => t)).join("text")
+      .attr("x", m.l - 6).attr("y", y).attr("dy", "0.32em").attr("text-anchor", "end").text((t) => t);
+    svg.append("g").selectAll("rect").data(weeks).join("rect")
+      .attr("x", (_, i) => x(i)).attr("width", x.bandwidth())
+      .attr("y", (v) => y(v)).attr("height", (v) => Math.max(0, y(0) - y(v)))
+      .attr("rx", 2)
+      .attr("fill", (_, i) => up && i === nWeeks - 1 ? ALERT : INK)
+      .attr("fill-opacity", (_, i) => up && i === nWeeks - 1 ? 1 : 0.78)
+      .each(function (v, i) {
+        const back = nWeeks - 1 - i;
+        const end = new Date(asOf - back * 7 * DAY), start = new Date(end - 6 * DAY);
+        d3.select(this).on("mousemove", (e) => showTip(e, `<b>${cap(d)}</b><br>${fmtDate(start)} to ${fmtDate(end)}<br>${v} report${v === 1 ? "" : "s"}`))
+          .on("mouseleave", hideTip);
+      });
+    svg.append("text").attr("x", W - m.r).attr("y", H - 4).attr("text-anchor", "end").text("this week");
+    svg.append("text").attr("x", m.l).attr("y", H - 4).text(`${nWeeks - 1} wks ago`);
+  });
+}
+
+// ---------- heatmap
+function drawHeat(list) {
+  const el = document.getElementById("heat");
+  const P = pairs(list);
+  if (!P.length) { el.innerHTML = `<p class="empty">No flagged articles match these filters.</p>`; return; }
+  const cnt = d3.rollup(P, (v) => v.length, (p) => p.d, (p) => p.c);
+  const dTot = d3.rollup(P, (v) => v.length, (p) => p.d), cTot = d3.rollup(P, (v) => v.length, (p) => p.c);
+  const ds = [...dTot.keys()].sort((a, b) => dTot.get(b) - dTot.get(a)).slice(0, 8);
+  const cs = [...cTot.keys()].sort((a, b) => cTot.get(b) - cTot.get(a)).slice(0, 8);
+  const W = el.clientWidth || 600, m = { t: 26, r: 4, b: 4, l: 118 }, row = 30;
+  const H = m.t + ds.length * row + m.b;
+  const x = d3.scaleBand().domain(cs).range([m.l, W - m.r]).padding(0.06);
+  const y = d3.scaleBand().domain(ds).range([m.t, H - m.b]).padding(0.08);
+  const max = d3.max(ds, (d) => d3.max(cs, (c) => cnt.get(d)?.get(c) || 0));
+  const ramp = d3.scaleQuantize().domain([1, Math.max(max, 2)]).range(["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95"]);
+  el.innerHTML = "";
+  const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("width", "100%").attr("role", "img").attr("aria-label", "Heatmap of flagged articles by disease and country");
+  svg.append("g").selectAll("text").data(cs).join("text").attr("x", (c) => x(c) + x.bandwidth() / 2).attr("y", 14).attr("text-anchor", "middle").text((c) => c);
+  const rows = svg.append("g").selectAll("g").data(ds).join("g").attr("transform", (d) => `translate(0,${y(d)})`);
+  rows.append("circle").attr("cx", 8).attr("cy", y.bandwidth() / 2).attr("r", 4.5).attr("fill", colorOf);
+  rows.append("text").attr("x", 20).attr("y", y.bandwidth() / 2).attr("dy", "0.34em").style("fill", INK).style("font-size", "12.5px").text(cap);
+  rows.selectAll("rect").data((d) => cs.map((c) => ({ d, c, v: cnt.get(d)?.get(c) || 0 }))).join("rect")
+    .attr("x", (o) => x(o.c)).attr("width", x.bandwidth()).attr("height", y.bandwidth()).attr("rx", 4)
+    .attr("fill", (o) => o.v ? ramp(o.v) : "#e6ece9")
+    .attr("stroke", (o) => risingKey.has(o.d + "|" + o.c) ? ALERT : "none").attr("stroke-width", 2)
+    .on("mousemove", (e, o) => showTip(e, `<b>${cap(o.d)} in ${o.c}</b><br>${o.v} flagged article${o.v === 1 ? "" : "s"}${risingKey.has(o.d + "|" + o.c) ? "<br>Rising this week" : ""}`))
+    .on("mouseleave", hideTip);
+  rows.selectAll("text.v").data((d) => cs.map((c) => ({ c, v: cnt.get(d)?.get(c) || 0 })).filter((o) => o.v)).join("text")
+    .attr("class", "v").attr("x", (o) => x(o.c) + x.bandwidth() / 2).attr("y", y.bandwidth() / 2).attr("dy", "0.34em").attr("text-anchor", "middle")
+    .style("fill", (o) => ["#3987e5", "#256abf", "#184f95"].includes(ramp(o.v)) ? "#fff" : INK).style("font-size", "11.5px").style("pointer-events", "none")
+    .text((o) => o.v);
+}
+
+// ---------- language pie
+function drawLang(list) {
+  const el = document.getElementById("lang");
+  const data = ["en", "sw"].map((k) => ({ k, v: list.filter((a) => a.lang === k).length })).filter((d) => d.v);
+  const total = d3.sum(data, (d) => d.v);
+  if (!total) { el.innerHTML = `<p class="empty">No flagged articles match these filters.</p>`; return; }
+  const size = 190, R = size / 2;
+  el.innerHTML = `<div class="donut-wrap"><div id="pie"></div><ul class="legend">${data.map((d) =>
+    `<li><i style="background:${LANG[d.k].color}"></i><b>${LANG[d.k].name}</b> ${d.v} <span>(${Math.round(100 * d.v / total)}%)</span></li>`).join("")}
+    </ul></div>`;
+  const svg = d3.select("#pie").append("svg").attr("viewBox", `0 0 ${size} ${size}`).attr("width", size).attr("height", size)
+    .attr("role", "img").attr("aria-label", data.map((d) => `${LANG[d.k].name} ${d.v}`).join(", "));
+  const g = svg.append("g").attr("transform", `translate(${R},${R})`);
+  const arcs = d3.pie().value((d) => d.v).sort(null).padAngle(data.length > 1 ? 0.025 : 0)(data);
+  g.selectAll("path").data(arcs).join("path")
+    .attr("d", d3.arc().innerRadius(R * 0.6).outerRadius(R - 2).cornerRadius(3))
+    .attr("fill", (d) => LANG[d.data.k].color)
+    .on("mousemove", (e, d) => showTip(e, `<b>${LANG[d.data.k].name}</b><br>${d.data.v} of ${total} flagged articles`))
+    .on("mouseleave", hideTip);
+  g.append("text").attr("text-anchor", "middle").attr("dy", "-0.05em").style("font", `750 30px ${css("--display")}`).style("fill", INK).text(total);
+  g.append("text").attr("text-anchor", "middle").attr("dy", "1.6em").style("font-size", "12px").text("articles");
+}
+
+// ---------- horizontal bars (sources, case counts)
+function hbars(el, rows, opts) {
+  if (!rows.length) { el.innerHTML = `<p class="empty">${opts.empty || "Nothing to show for these filters."}</p>`; return; }
+  const W = el.clientWidth || 500, row = 28, m = { t: 2, r: opts.right || 40, b: 2, l: opts.left || 130 };
+  const H = m.t + rows.length * row + m.b;
+  const x = d3.scaleLinear().domain([0, d3.max(rows, (d) => d.v)]).range([m.l, W - m.r]);
+  const y = d3.scaleBand().domain(rows.map((d) => d.k)).range([m.t, H - m.b]).paddingInner(0.32);
+  el.innerHTML = "";
+  const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("width", "100%").attr("role", "img").attr("aria-label", opts.label);
+  const g = svg.selectAll("g").data(rows).join("g").attr("transform", (d) => `translate(0,${y(d.k)})`);
+  if (opts.dot) g.append("circle").attr("cx", 6).attr("cy", y.bandwidth() / 2).attr("r", 4.5).attr("fill", (d) => opts.dot(d));
+  g.append("text").attr("x", opts.dot ? 18 : 0).attr("y", y.bandwidth() / 2).attr("dy", "0.34em").style("fill", INK).style("font-size", "12.5px")
+    .text((d) => d.label || d.k);
+  g.append("rect").attr("x", m.l).attr("height", y.bandwidth()).attr("rx", 3)
+    .attr("width", (d) => Math.max(2, x(d.v) - m.l)).attr("fill", (d) => opts.fill ? opts.fill(d) : INK)
+    .on("mousemove", (e, d) => showTip(e, opts.tip(d))).on("mouseleave", hideTip);
+  g.append("text").attr("x", (d) => x(d.v) + 6).attr("y", y.bandwidth() / 2).attr("dy", "0.34em").style("fill", INK)
+    .text((d) => opts.value ? opts.value(d) : fmt(d.v));
+}
+function drawSources(list) {
+  const c = d3.rollups(list.filter((a) => a.source), (v) => v.length, (a) => a.source).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  hbars(document.getElementById("sources"), c.map(([k, v]) => ({ k, v })), {
+    label: "Flagged articles per news outlet", left: 140,
+    tip: (d) => `<b>${d.k}</b><br>${d.v} flagged article${d.v === 1 ? "" : "s"}`,
+  });
+}
+function drawCounts(list) {
+  const P = pairs(list);
+  const g = d3.rollups(P, (v) => ({ cases: d3.max(v, (p) => p.a.cases), deaths: d3.max(v, (p) => p.a.deaths), n: new Set(v.map((p) => p.a)).size }), (p) => p.d)
+    .filter(([, o]) => o.cases).sort((a, b) => b[1].cases - a[1].cases).slice(0, 8);
+  hbars(document.getElementById("counts"), g.map(([k, o]) => ({ k, label: cap(k), v: o.cases, deaths: o.deaths })), {
+    label: "Largest case count reported per disease", left: 130, right: 120, dot: (d) => colorOf(d.k),
+    empty: "No case numbers were found in these articles.",
+    value: (d) => `${fmt(d.v)} cases${d.deaths ? `, ${fmt(d.deaths)} deaths` : ""}`,
+    tip: (d) => `<b>${cap(d.k)}</b><br>Largest single report: ${fmt(d.v)} cases${d.deaths ? `<br>Most deaths reported: ${fmt(d.deaths)}` : ""}`,
+  });
+}
+
+// ---------- classifier confidence
+function drawConf() {
+  const el = document.getElementById("conf");
+  const list = D.articles.filter((a) => (S.lang === "all" || a.lang === S.lang) && (S.weeks === "all" || weeksAgo(a.date) < +S.weeks));
+  const bins = d3.bin().domain([0, 1]).thresholds(d3.range(0.05, 1, 0.05)).value((a) => a.prob)(list);
+  const W = el.clientWidth || 900, H = 170, m = { t: 10, r: 8, b: 26, l: 30 };
+  const x = d3.scaleLinear().domain([0, 1]).range([m.l, W - m.r]);
+  const y = d3.scaleLinear().domain([0, d3.max(bins, (b) => b.length) || 1]).nice().range([H - m.b, m.t]);
+  el.innerHTML = "";
+  const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("width", "100%").attr("role", "img").attr("aria-label", "Histogram of classifier confidence across all articles");
+  svg.append("g").selectAll("line").data(y.ticks(3)).join("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y).attr("y2", y).attr("stroke", LINE).attr("stroke-dasharray", (t) => t ? "2 3" : null);
+  svg.append("g").selectAll("text").data(y.ticks(3).filter((t) => t)).join("text").attr("x", m.l - 6).attr("y", y).attr("dy", "0.32em").attr("text-anchor", "end").text((t) => t);
+  svg.append("g").selectAll("rect").data(bins).join("rect")
+    .attr("x", (b) => x(b.x0) + 1).attr("width", (b) => Math.max(0, x(b.x1) - x(b.x0) - 2))
+    .attr("y", (b) => y(b.length)).attr("height", (b) => y(0) - y(b.length)).attr("rx", 2)
+    .attr("fill", (b) => b.x0 >= 0.5 ? INK : "#a9b8bb")
+    .on("mousemove", (e, b) => showTip(e, `<b>${Math.round(b.x0 * 100)} to ${Math.round(b.x1 * 100)}% sure</b><br>${b.length} article${b.length === 1 ? "" : "s"}${b.x0 >= 0.5 ? ", flagged" : ", not flagged"}`))
+    .on("mouseleave", hideTip);
+  svg.append("line").attr("x1", x(0.5)).attr("x2", x(0.5)).attr("y1", m.t - 4).attr("y2", H - m.b).attr("stroke", ALERT).attr("stroke-width", 1.5).attr("stroke-dasharray", "4 3");
+  svg.append("text").attr("x", x(0.5) + 6).attr("y", m.t + 6).style("fill", ALERT).text("flag threshold");
+  svg.append("g").selectAll("text").data([0, 0.25, 0.5, 0.75, 1]).join("text").attr("x", x).attr("y", H - 6).attr("text-anchor", (t) => t === 0 ? "start" : t === 1 ? "end" : "middle").text((t) => `${t * 100}%`);
+}
+
+// ---------- table
+const T = { sort: "date", dir: -1, page: 0, per: 15, q: "" };
+const COLS = [
+  { k: "date", label: "Date" },
+  { k: "title", label: "Headline", nosort: true },
+  { k: "disease", label: "Disease and place", nosort: true },
+  { k: "cases", label: "Cases", num: true },
+  { k: "deaths", label: "Deaths", num: true },
+  { k: "prob", label: "Confidence", num: true },
+];
+function drawTable(list) {
+  const q = T.q.toLowerCase();
+  let rows = q ? list.filter((a) => [a.title, a.source, ...a.places, ...a.countries, ...a.diseases].join(" ").toLowerCase().includes(q)) : list.slice();
+  const key = { date: (a) => a.date, cases: (a) => a.cases ?? -1, deaths: (a) => a.deaths ?? -1, prob: (a) => a.prob }[T.sort];
+  rows.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * T.dir);
+  const pages = Math.max(1, Math.ceil(rows.length / T.per));
+  T.page = Math.min(T.page, pages - 1);
+  const shown = rows.slice(T.page * T.per, (T.page + 1) * T.per);
+
+  document.getElementById("thead").innerHTML = COLS.map((c) =>
+    `<th class="${c.num ? "num" : ""}" ${T.sort === c.k ? `aria-sort="${T.dir > 0 ? "ascending" : "descending"}"` : ""}>${c.nosort ? c.label :
+      `<button data-sort="${c.k}">${c.label}<span class="arrow">${T.sort === c.k ? (T.dir > 0 ? "↑" : "↓") : "↕"}</span></button>`}</th>`).join("");
+  document.querySelectorAll("[data-sort]").forEach((b) => b.onclick = () => {
+    T.dir = T.sort === b.dataset.sort ? -T.dir : -1; T.sort = b.dataset.sort; drawTable(view());
+  });
+
+  document.getElementById("rows").innerHTML = shown.length ? shown.map((a) => `
+    <tr>
+      <td style="white-space:nowrap">${fmtDate(new Date(a.date + "T12:00:00"))}</td>
+      <td><a class="hl" href="${a.link}" target="_blank" rel="noopener">${esc(a.title)}</a>
+        <div class="src">${esc(a.source || "Unknown outlet")}<span class="lang ${a.lang}">${a.lang.toUpperCase()}</span></div></td>
+      <td>${a.diseases.map((d) => `<span class="pill"><i style="background:${colorOf(d)}"></i>${cap(d)}</span>`).join("")}
+        <div class="where">${esc(a.places.length ? a.places.join(", ") : a.countries.join(", "))}</div></td>
+      <td class="num">${a.cases != null ? fmt(a.cases) : '<span style="color:var(--faint)">–</span>'}</td>
+      <td class="num">${a.deaths != null ? `<span class="deaths">${fmt(a.deaths)}</span>` : '<span style="color:var(--faint)">–</span>'}</td>
+      <td class="num"><div class="conf"><div class="bar"><span style="width:${Math.round(a.prob * 100)}%"></span></div>${Math.round(a.prob * 100)}%</div></td>
+    </tr>`).join("") : `<tr><td colspan="6" class="empty">No articles match. Try clearing the search or filters.</td></tr>`;
+
+  document.getElementById("count").textContent = rows.length
+    ? `Showing ${T.page * T.per + 1} to ${T.page * T.per + shown.length} of ${rows.length}` : "No matches";
+  document.getElementById("page").textContent = `Page ${T.page + 1} of ${pages}`;
+  document.getElementById("prev").disabled = T.page === 0;
+  document.getElementById("next").disabled = T.page >= pages - 1;
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+document.getElementById("search").addEventListener("input", (e) => { T.q = e.target.value; T.page = 0; drawTable(view()); });
+document.getElementById("prev").onclick = () => { T.page--; drawTable(view()); };
+document.getElementById("next").onclick = () => { T.page++; drawTable(view()); };
+
+// ---------- wire up
+function scopeLine(list) {
+  const bits = [];
+  if (S.diseases.size) bits.push([...S.diseases].map(cap).join(" and "));
+  if (S.country) bits.push("in " + S.country);
+  if (S.lang !== "all") bits.push("in " + LANG[S.lang].name);
+  if (S.weeks !== "all") bits.push(`over the last ${S.weeks} weeks`);
+  document.getElementById("scope").textContent =
+    `${fmt(list.length)} flagged article${list.length === 1 ? "" : "s"}${bits.length ? ": " + bits.join(", ") : " across all diseases, countries and weeks"}.`;
+}
+function update() {
+  const list = view();
+  T.page = 0;
+  syncFilters(); scopeLine(list);
+  drawMap(list); drawCurves(list); drawHeat(list); drawLang(list);
+  drawCounts(list); drawSources(list); drawConf(); drawTable(list);
+}
+
+header(); thisWeek(); buildFilters(); setupMap(); update();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { setupMap(); update(); }, 200); });
+})();
+</script>
+</body>
+</html>
