@@ -1,4 +1,4 @@
-# Outbreak Watch
+# Disease Outbreak Watch
 
 Picks up early signs of disease outbreaks in East African news, in English and Kiswahili.
 
