@@ -62,8 +62,12 @@ def main():
 
     print(f"{len(df)} examples ({hand.sum()} hand-labeled): "
           f"{(df.y == 1).sum()} outbreak, {(df.y == 0).sum()} not")
-    if df.y.value_counts().min() < 5:
-        raise SystemExit("need at least 5 of each class - label some more first")
+    counts = df.y.value_counts()
+    if len(counts) < 2 or counts.min() < 5:
+        have = f"{counts.get(1, 0)} outbreak and {counts.get(0, 0)} not"
+        raise SystemExit(f"\nnot enough labels yet (you have {have}; need at least 5 of each).\n"
+                         "  label some:            python label.py\n"
+                         "  or use the rules for now: python train.py --use-weak")
 
     k = min(5, df.y.value_counts().min())
     pred = cross_val_predict(make_model(), df.text, df.y,
