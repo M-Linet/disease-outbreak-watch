@@ -1,7 +1,8 @@
 """Grab health news for East Africa from Google News RSS (English + Swahili).
 
 No API key needed. Each run adds to data/raw_articles.csv instead of replacing
-it, so run it daily and the history builds up.
+it, so run it daily and the history builds up. Real article links are looked
+up later, by build_site.py, and only for the articles the dashboard shows.
 
     python collect.py
 """
@@ -36,7 +37,8 @@ FEED_PARAMS = {
 }
 
 OUT = "data/raw_articles.csv"
-FIELDS = ["title", "summary", "link", "published", "source", "language", "query_keyword", "query_country"]
+FIELDS = ["title", "summary", "link", "published", "source", "language", "query_keyword",
+          "query_country", "google_link"]
 
 
 def clean(s):
@@ -58,16 +60,28 @@ def to_row(entry, lang, keyword, country):
     if entry.get("published_parsed"):
         published = datetime(*entry.published_parsed[:6]).strftime("%Y-%m-%d")
     source = entry.get("source")
+    outlet = source.get("title", "") if isinstance(source, dict) else ""
+    title = clean(entry.get("title"))
+    if outlet and title.endswith(" - " + outlet):  # Google appends " - Outlet" to every title
+        title = title[: -len(outlet) - 3]
     return {
-        "title": clean(entry.get("title")),
+        "title": title,
         "summary": clean(entry.get("summary")),
         "link": entry.get("link", ""),
+        "google_link": entry.get("link", ""),
         "published": published,
-        "source": source.get("title", "") if isinstance(source, dict) else "",
+        "source": outlet,
         "language": lang,
         "query_keyword": keyword,
         "query_country": country,
     }
+
+
+def save(rows):
+    with open(OUT, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore", restval="")
+        w.writeheader()
+        w.writerows(rows)
 
 
 def main():
@@ -76,7 +90,8 @@ def main():
     if os.path.exists(OUT):
         with open(OUT, encoding="utf-8") as f:
             old = list(csv.DictReader(f))
-    links = {r["link"] for r in old}
+    # compare on Google's link, since that's what the feed gives us next time
+    links = {r.get("google_link") or r["link"] for r in old}
     titles = {r["title"].lower() for r in old}
     print(f"{len(old)} articles already saved")
 
@@ -104,10 +119,7 @@ def main():
         print(f"{i:>3}/{len(queries)}  {q:<38} {len(entries):>3} found, {added} new")
         time.sleep(1)  # don't hammer Google
 
-    with open(OUT, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore")
-        w.writeheader()
-        w.writerows(old + new)
+    save(old + new)
 
     sw = sum(r["language"] == "sw" for r in new)
     print(f"\n+{len(new)} new ({sw} Swahili), {len(old) + len(new)} total in {OUT}")

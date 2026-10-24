@@ -1,14 +1,21 @@
 """Write site/data.js from the pipeline output so site/index.html can show it.
 
+Also swaps Google's redirect links for real article links on the newest flagged
+articles (150 per run by default, remembered for next time - see links.py).
+
     python build_site.py
+    python build_site.py --links 400    # look up more links this run
+    python build_site.py --links 0      # skip link lookup (instant)
     then open site/index.html in a browser (double-click works, no server needed)
 """
+import argparse
 import json
 from datetime import date
 
 import pandas as pd
 
 from config import COUNTRY_CENTROIDS, DISEASES, PLACES
+from links import load_cache, look_up
 
 
 def split(s):
@@ -20,6 +27,10 @@ def num(x):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--links", type=int, default=150, help="max new link lookups this run (0 = skip)")
+    args = ap.parse_args()
+
     sig = pd.read_csv("data/signals.csv", parse_dates=["published"])
     sig = sig[sig.published.notna()].fillna({"title": "", "source": "", "link": "", "places": "",
                                              "diseases": "", "countries": ""})
@@ -27,6 +38,14 @@ def main():
         alerts = pd.read_csv("data/alerts.csv")
     except (FileNotFoundError, pd.errors.EmptyDataError):
         alerts = pd.DataFrame()
+
+    # rising-signal stories first, then the newest flagged ones - the links people will click
+    wanted = list(alerts[alerts.spike].latest_link) if len(alerts) else []
+    wanted += list(sig[sig.is_outbreak].sort_values("published", ascending=False).link)
+    real = look_up(wanted, limit=args.links) if args.links > 0 else load_cache()
+    sig["link"] = sig.link.map(lambda u: real.get(u, u))
+    if len(alerts):
+        alerts["latest_link"] = alerts.latest_link.map(lambda u: real.get(u, u))
 
     articles = [{
         "date": r.published.strftime("%Y-%m-%d"),

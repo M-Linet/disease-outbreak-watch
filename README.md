@@ -27,7 +27,7 @@ python label.py --weak     # rule-based guess for each article
 python label.py            # go through them yourself: 1 / 0 / enter / s / q
 python train.py            # train the classifier on your labels
 python pipeline.py         # classify + extract + find what's rising
-python build_site.py       # export for the web page
+python build_site.py       # export for the web page (also looks up real article links)
 ```
 
 Then open `site/index.html` in a browser. No server needed.
@@ -47,11 +47,15 @@ templates. Real news is much messier.)
 
 ## How it works
 
-**Collecting** (`collect.py`). Google News RSS search, about 100 queries: 12
-disease terms across 7 countries in English, plus Kiswahili terms like
+**Collecting** (`collect.py`). Google News RSS search, about 120 queries: 12
+disease terms across 8 countries (including DR Congo) in English, plus Kiswahili terms like
 *kipindupindu* (cholera), *surua* (measles) and *homa ya bonde la ufa* (Rift
 Valley fever) for Kenya, Tanzania and Uganda. Duplicates are dropped by link and
 by title, since wire stories get republished under different URLs.
+
+Google News only gives out its own redirect links, so `build_site.py` swaps them
+for the real article address. Each one takes a request to Google, so it does the
+newest 150 flagged articles per run and remembers them in `data/real_links.csv`.
 
 **Labelling** (`label.py`). Keyword rules make a first guess, then you confirm
 or correct each one by hand. The unsure ones come up first because they're
@@ -121,6 +125,7 @@ train.py             classifier
 extract.py           disease / place / number extraction
 pipeline.py          run everything, find rising signals
 build_site.py        export results to site/data.js
+links.py             swap Google News redirect links for real ones (cached)
 evaluate.py          backtest against known outbreaks
 make_sample_data.py  fake data for the demo
 config.py            word lists and place coordinates
